@@ -1,0 +1,26 @@
+name = "Lean4EVM"
+version = "0.1.0"
+license = "MIT"
+keywords = ["ethereum", "evm", "math"]
+defaultTargets = ["Lean4EVM"]
+testDriver = "Lean4EVMTest"
+lintDriver = "batteries/runLinter"
+lintDriverArgs = ["Lean4EVM"]
+
+[leanOptions]
+pp.unicode.fun = true # pretty-prints `fun a ↦ b`
+relaxedAutoImplicit = false
+weak.linter.mathlibStandardSet = true
+weak.linter.style.header = false # this project does not use per-file copyright headers
+maxSynthPendingDepth = 3
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.33.1"
+
+[[lean_lib]]
+name = "Lean4EVM"
+
+[[lean_lib]]
+name = "Lean4EVMTest"

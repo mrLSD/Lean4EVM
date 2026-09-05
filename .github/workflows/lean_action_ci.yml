@@ -1,0 +1,43 @@
+name: Lean Action CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Build, test, lint, gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: leanprover/lean-action@v1
+        with:
+          test: true
+          lint: true
+          build-args: --wfail
+          test-args: --wfail
+          lint-args: --wfail
+
+      - name: No forbidden verification bypasses
+        run: |
+          if grep -rnwE 'sorry|admit|native_decide|bv_decide|ofReduceBool|implemented_by' \
+              --include='*.lean' --exclude-dir=.lake .; then
+            echo "::error::a forbidden verification bypass reached a Lean source"
+            exit 1
+          fi
+
+      - name: Nominal byte wrappers agree
+        run: python3 scripts/wrapper_drift.py
+
+      - name: Differential test against EELS
+        run: python3 scripts/eels_diff.py
