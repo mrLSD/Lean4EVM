@@ -1,5 +1,5 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CI](https://github.com/mrLSD/Lean4EVM/actions/workflows/lean_action_ci.yml/badge.svg)](https://github.com/mrLSD/Lean4EVM/actions/workflows/lean_action_ci.yml)
+[![Lean Action CI](https://github.com/mrLSD/Lean4EVM/actions/workflows/lean_action_ci.yml/badge.svg)](https://github.com/mrLSD/Lean4EVM/actions/workflows/lean_action_ci.yml)
 [![Lean](https://img.shields.io/badge/Lean-4.33.1-4B3FA8.svg)](https://lean-lang.org)
 [![Mathlib](https://img.shields.io/badge/Mathlib-v4.33.1-2C7A6B.svg)](https://github.com/leanprover-community/mathlib4)
 
