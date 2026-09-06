@@ -4,7 +4,8 @@
 The reference below is transcribed from ethereum/execution-specs
 (`forks/osaka/vm/instructions/{arithmetic,bitwise,comparison}.py`) and from the big-endian byte
 conventions of `ethereum_types`. Vectors are generated deterministically, evaluated by
-`scripts/EelsDiff.lean` through `lake env lean --run`, and every output field is compared.
+`scripts/EelsDiff.lean` through `lake env lean --run`, and every output field is compared. A warning
+from the evaluator fails the run, matching the `--wfail` policy of the Lake gates.
 """
 
 import random
@@ -193,7 +194,10 @@ def main():
         d = Path(tmp)
         (d / "ops.txt").write_text("".join(f"{a:x} {b:x} {c:x}\n" for a, b, c in ops))
         (d / "bytes.txt").write_text("".join(f"{s} {n:x}\n" for s, n in byts))
-        subprocess.run(["lake", "env", "lean", "--run", "scripts/EelsDiff.lean", tmp],
+        # `--wfail` covers `lake build`, not this direct `lean` invocation, so the evaluator
+        # gets the equivalent Lean option and any warning it emits fails the gate.
+        subprocess.run(["lake", "env", "lean", "-DwarningAsError=true",
+                        "--run", "scripts/EelsDiff.lean", tmp],
                        cwd=ROOT, check=True)
         rows_ops = [l.split() for l in (d / "ops.out").read_text().splitlines() if l]
         rows_bytes = [l.split() for l in (d / "bytes.out").read_text().splitlines() if l]
