@@ -77,3 +77,48 @@ example {bytes : ByteArray} {value : Address} (h : Address.ofByteArray? bytes = 
   Address.toByteArray_ofByteArray?_eq_some h
 
 end FixedBytesTests
+
+/-! ## Deriving `H160` from `H256`
+
+Ethereum identifies an account by the last twenty bytes of a digest. `H256.toH160` is that rule.
+`H256.ofH160` is the zero-extending embedding that `toH160` undoes; the opposite composition
+recovers a digest only when its leading twelve bytes are zero.
+-/
+
+section HashNarrowing
+
+/-! ### It computes: the narrowed hash is the last twenty bytes, byte for byte -/
+
+example :
+    (H256.ofNat 0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f).toH160
+      = H160.ofNat 0x0c0d0e0f101112131415161718191a1b1c1d1e1f := by decide
+
+/-! ### Widening restores the value and leaves the leading twelve bytes zero -/
+
+example : (H256.ofH160 (H160.ofNat 0xdeadbeef)).toNat = 0xdeadbeef := by decide
+example : (H256.ofH160 (H160.ofNat 0xdeadbeef)).getByte 0 = 0 := by decide
+example : (H256.ofH160 (H160.ofNat 0xdeadbeef)).getByte 11 = 0 := by decide
+example : (H256.ofH160 (H160.ofNat 0xdeadbeef)).getByte 31 = 0xef := by decide
+
+/-! ### One direction of the round trip always holds, the other one only below `2 ^ 160` -/
+
+example : (H256.ofH160 (H160.ofNat 0xdeadbeef)).toH160 = H160.ofNat 0xdeadbeef := by decide
+example : H256.ofH160 H256.max.toH160 ≠ H256.max := by decide
+
+/-! ### The same facts as theorems, proved once for every value rather than checked on samples -/
+
+example (value : H160) : (H256.ofH160 value).toH160 = value :=
+  H256.toH160_ofH160 value
+
+example (value : H256) (h : value.toNat < 2 ^ 160) : H256.ofH160 value.toH160 = value :=
+  H256.ofH160_toH160_iff.mpr h
+
+example (value : H256) (index : ℕ) (h : index < 20) :
+    value.toH160.getByte index = value.getByte (index + 12) :=
+  H256.getByte_toH160 value index h
+
+example (value : H160) (index : ℕ) (h : index < 12) :
+    (H256.ofH160 value).getByte index = 0 :=
+  H256.getByte_ofH160_of_lt value index h
+
+end HashNarrowing

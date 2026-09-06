@@ -28,6 +28,66 @@ abbrev max : U256 := FixedUInt.max
 /-- Returns the modulus `2 ^ 256`. -/
 abbrev modulus : ℕ := FixedUInt.modulus 256
 
+/-! ### Overflow policies
+
+Ordinary `U256` arithmetic wraps. These re-exports give the checked, overflowing and saturating
+policies the same `value.operation` spelling, so a caller states its policy without reaching into
+the generic `FixedUInt` namespace.
+-/
+
+/-- Adds two values, or reports `none` when the exact sum does not fit in 256 bits. -/
+abbrev checkedAdd (a b : U256) : Option U256 := FixedUInt.checkedAdd a b
+/-- Subtracts two values, or reports `none` when the exact difference is negative. -/
+abbrev checkedSub (a b : U256) : Option U256 := FixedUInt.checkedSub a b
+/-- Multiplies two values, or reports `none` when the exact product does not fit in 256 bits. -/
+abbrev checkedMul (a b : U256) : Option U256 := FixedUInt.checkedMul a b
+/-- Divides two values, or reports `none` for a zero divisor. -/
+abbrev checkedDiv (a b : U256) : Option U256 := FixedUInt.checkedDiv a b
+/-- Computes a remainder, or reports `none` for a zero divisor. -/
+abbrev checkedMod (a b : U256) : Option U256 := FixedUInt.checkedMod a b
+/-- Returns quotient and remainder together, or `none` for a zero divisor. -/
+abbrev checkedDivMod (a b : U256) : Option (U256 × U256) := FixedUInt.checkedDivMod a b
+
+/-- Returns the wrapped sum together with the flag that reports the lost carry. -/
+abbrev overflowingAdd (a b : U256) : U256 × Bool := FixedUInt.overflowingAdd a b
+/-- Returns the wrapped difference together with the flag that reports the borrow. -/
+abbrev overflowingSub (a b : U256) : U256 × Bool := FixedUInt.overflowingSub a b
+/-- Returns the wrapped product together with the flag that reports the lost high bits. -/
+abbrev overflowingMul (a b : U256) : U256 × Bool := FixedUInt.overflowingMul a b
+
+/-- Adds two values, clamping an overflowing sum to the greatest U256. -/
+abbrev saturatingAdd (a b : U256) : U256 := FixedUInt.saturatingAdd a b
+/-- Subtracts two values, clamping an underflowing difference to zero. -/
+abbrev saturatingSub (a b : U256) : U256 := FixedUInt.saturatingSub a b
+/-- Multiplies two values, clamping an overflowing product to the greatest U256. -/
+abbrev saturatingMul (a b : U256) : U256 := FixedUInt.saturatingMul a b
+
+/-- Reports whether the exact sum leaves the 256-bit range. -/
+abbrev addOverflow (a b : U256) : Bool := FixedUInt.addOverflow a b
+/-- Reports whether the exact difference is negative. -/
+abbrev subOverflow (a b : U256) : Bool := FixedUInt.subOverflow a b
+/-- Reports whether the exact product leaves the 256-bit range. -/
+abbrev mulOverflow (a b : U256) : Bool := FixedUInt.mulOverflow a b
+
+/-! ### Bit inspection, rotation and rendering -/
+
+/-- Returns bit `index` counting from the least-significant bit; bits at 256 and above are false. -/
+abbrev testBit (value : U256) (index : ℕ) : Bool := FixedUInt.testBit value index
+/-- Counts the zero bits above the most-significant set bit. -/
+abbrev leadingZeros (value : U256) : ℕ := FixedUInt.leadingZeros value
+/-- Counts the zero bits below the least-significant set bit. -/
+abbrev trailingZeros (value : U256) : ℕ := FixedUInt.trailingZeros value
+/-- Counts the set bits. -/
+abbrev countOnes (value : U256) : ℕ := FixedUInt.countOnes value
+/-- Rotates the bit pattern left, carrying the bits that leave the top back into the bottom; the
+amount is taken modulo 256. -/
+abbrev rotateLeft (value : U256) (amount : ℕ) : U256 := FixedUInt.rotateLeft value amount
+/-- Rotates the bit pattern right, carrying the bits that leave the bottom back into the top; the
+amount is taken modulo 256. -/
+abbrev rotateRight (value : U256) (amount : ℕ) : U256 := FixedUInt.rotateRight value amount
+/-- Renders the value as `0x` followed by exactly 64 hexadecimal digits. -/
+abbrev toHex (value : U256) : String := FixedUInt.toHex value
+
 /-- The `U256` modulus has the canonical power-of-two form. -/
 @[simp]
 theorem modulus_eq : U256.modulus = 2 ^ 256 :=
@@ -346,7 +406,7 @@ theorem toU64?_toU256 (value : U64) : value.toU256.toU64? = some value := by
   simp only [toNat_lowU64, U64.toNat_toU256]
   exact Nat.mod_eq_of_lt (FixedUInt.toNat_lt_modulus value)
 
-/-- Widening and checked narrowing are mutually inverse. -/
+/-- Widening a `U128` to `U256` and narrowing it again is lossless. -/
 @[simp]
 theorem toU128?_toU256 (value : U128) : value.toU256.toU128? = some value := by
   have h : FixedUInt.toNat value.toU256 < U128.modulus := by
@@ -357,6 +417,26 @@ theorem toU128?_toU256 (value : U128) : value.toU256.toU128? = some value := by
   apply FixedUInt.toNat_injective
   simp only [U256.toNat_lowU128, U128.toNat_toU256]
   exact Nat.mod_eq_of_lt (FixedUInt.toNat_lt_modulus value)
+
+/-- A `U64` recovered by checked narrowing widens back to the word it came from. With
+`toU64?_toU256` this makes widening and checked narrowing mutually inverse. -/
+theorem toU256_toU64?_eq_some {value : U256} {narrowed : U64}
+    (h : value.toU64? = some narrowed) : narrowed.toU256 = value := by
+  rw [toU64?, U64.ofNat?] at h
+  rcases FixedUInt.ofNat?_eq_some_iff.mp h with ⟨hlt, hval⟩
+  apply FixedUInt.toNat_injective
+  simp only [U64.toNat_toU256, ← hval, FixedUInt.toNat_ofNat]
+  exact Nat.mod_eq_of_lt hlt
+
+/-- A `U128` recovered by checked narrowing widens back to the word it came from. With
+`toU128?_toU256` this makes widening and checked narrowing mutually inverse. -/
+theorem toU256_toU128?_eq_some {value : U256} {narrowed : U128}
+    (h : value.toU128? = some narrowed) : narrowed.toU256 = value := by
+  rw [toU128?, U128.ofNat?] at h
+  rcases FixedUInt.ofNat?_eq_some_iff.mp h with ⟨hlt, hval⟩
+  apply FixedUInt.toNat_injective
+  simp only [U128.toNat_toU256, ← hval, FixedUInt.toNat_ofNat]
+  exact Nat.mod_eq_of_lt hlt
 
 /-- `ISZERO` is true exactly for the zero word. -/
 @[simp]

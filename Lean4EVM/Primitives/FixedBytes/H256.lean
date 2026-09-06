@@ -1,4 +1,5 @@
 import Lean4EVM.Primitives.FixedBytes.Core
+import Lean4EVM.Primitives.FixedBytes.H160
 import Lean4EVM.Primitives.UInt.U256
 
 /-!
@@ -71,6 +72,15 @@ def ofU256 (value : U256) : H256 :=
 /-- Reinterprets a 256-bit hash as an EVM word. -/
 def toU256 (value : H256) : U256 :=
   ⟨value.toFixedBytes.val⟩
+
+/-- Reinterprets the last twenty bytes of a hash as `H160`, which is how Ethereum derives an
+account identifier from a digest. The leading twelve bytes are discarded. -/
+def toH160 (value : H256) : H160 :=
+  H160.ofNat value.toNat
+
+/-- Places a 160-bit hash in the last twenty bytes of an `H256`, leaving the leading twelve zero. -/
+def ofH160 (value : H160) : H256 :=
+  ofNat value.toNat
 
 /-- Equality of generic representations identifies equal `H256` values. -/
 theorem toFixedBytes_injective : Function.Injective toFixedBytes := by
@@ -262,6 +272,108 @@ theorem toNat_toU256 (value : H256) : value.toU256.toNat = value.toNat :=
 /-- Hash construction from a word preserves the unsigned value. -/
 @[simp]
 theorem toNat_ofU256 (value : U256) : (ofU256 value).toNat = value.toNat :=
+  rfl
+
+/-- Narrowing to `H160` keeps exactly the low 160 bits. -/
+@[simp]
+theorem toNat_toH160 (value : H256) : value.toH160.toNat = value.toNat % 2 ^ 160 := by
+  simp [toH160]
+
+/-- Widening a 160-bit hash preserves its unsigned value. -/
+@[simp]
+theorem toNat_ofH160 (value : H160) : (ofH160 value).toNat = value.toNat := by
+  rw [ofH160, toNat_ofNat, Nat.mod_eq_of_lt]
+  exact lt_trans value.toNat_lt (by decide)
+
+/-- Widening a 160-bit hash and narrowing it back is lossless. -/
+@[simp]
+theorem toH160_ofH160 (value : H160) : (ofH160 value).toH160 = value := by
+  apply H160.toNat_injective
+  rw [toNat_toH160, toNat_ofH160, Nat.mod_eq_of_lt value.toNat_lt]
+
+/-- Narrowing is a left inverse of widening, which is the source of the two facts below. -/
+theorem leftInverse_toH160_ofH160 : Function.LeftInverse toH160 ofH160 :=
+  toH160_ofH160
+
+/-- Distinct 160-bit hashes widen to distinct 256-bit hashes. -/
+theorem ofH160_injective : Function.Injective ofH160 :=
+  leftInverse_toH160_ofH160.injective
+
+/-- Every 160-bit hash is the narrowing of some 256-bit hash. -/
+theorem toH160_surjective : Function.Surjective toH160 :=
+  leftInverse_toH160_ofH160.surjective
+
+/-- Narrowing then widening recovers the hash exactly when its leading twelve bytes are zero. -/
+theorem ofH160_toH160_iff {value : H256} :
+    ofH160 value.toH160 = value ↔ value.toNat < 2 ^ 160 := by
+  constructor
+  · intro h
+    have hvalue := congrArg H256.toNat h
+    rw [toNat_ofH160, toNat_toH160] at hvalue
+    exact hvalue ▸ Nat.mod_lt _ (by decide)
+  · intro h
+    apply toNat_injective
+    rw [toNat_ofH160, toNat_toH160, Nat.mod_eq_of_lt h]
+
+/-- Widening changes no bit: every bit at 160 and above was already false. The simp set already
+proves this from the value lemmas, so it is stated for readability rather than marked `@[simp]`. -/
+theorem testBit_ofH160 (value : H160) (index : ℕ) :
+    (ofH160 value).testBit index = value.testBit index := by
+  rw [testBit_eq, H160.testBit_eq, toNat_ofH160]
+
+/-- Narrowing preserves every bit below 160 and drops exactly the rest. -/
+theorem testBit_toH160 (value : H256) (index : ℕ) (h : index < 160) :
+    value.toH160.testBit index = value.testBit index := by
+  rw [H160.testBit_eq, testBit_eq, toNat_toH160, Nat.testBit_mod_two_pow]
+  simp [h]
+
+/-- Reducing modulo `2 ^ 160` leaves every byte that lies below that boundary unchanged. -/
+private theorem mod_pow_div_mod (n k : ℕ) (h : k + 8 ≤ 160) :
+    n % 2 ^ 160 / 2 ^ k % 256 = n / 2 ^ k % 256 := by
+  have hsplit : (2 : ℕ) ^ 160 = 2 ^ k * 2 ^ (160 - k) := by
+    rw [← pow_add]; congr 1; omega
+  rw [hsplit, Nat.mod_mul_right_div_self]
+  refine Nat.mod_mod_of_dvd _ ?_
+  have h256 : (256 : ℕ) = 2 ^ 8 := by decide
+  rw [h256]
+  exact pow_dvd_pow 2 (by omega)
+
+/-- Byte `index` of the narrowed hash is byte `index + 12` of the original: the Ethereum rule that
+an account identifier is the last twenty bytes of a digest. -/
+theorem getByte_toH160 (value : H256) (index : ℕ) (h : index < 20) :
+    value.toH160.getByte index = value.getByte (index + 12) := by
+  rw [H160.getByte, H256.getByte, FixedBytes.getByte_of_index_lt _ _ h,
+    FixedBytes.getByte_of_index_lt _ _ (by omega : index + 12 < 32)]
+  congr 1
+  change value.toH160.toNat / 2 ^ (8 * (20 - 1 - index)) % 256 =
+    value.toNat / 2 ^ (8 * (32 - 1 - (index + 12))) % 256
+  rw [toNat_toH160]
+  have hindex : 8 * (20 - 1 - index) = 8 * (32 - 1 - (index + 12)) := by omega
+  rw [hindex]
+  exact mod_pow_div_mod _ _ (by omega)
+
+/-- Widening places source byte `index` at byte `index + 12` of the result. -/
+theorem getByte_ofH160 (value : H160) (index : ℕ) (h : index < 20) :
+    (ofH160 value).getByte (index + 12) = value.getByte index := by
+  rw [H256.getByte, H160.getByte, FixedBytes.getByte_of_index_lt _ _ (by omega : index + 12 < 32),
+    FixedBytes.getByte_of_index_lt _ _ h]
+  congr 1
+  change (ofH160 value).toNat / 2 ^ (8 * (32 - 1 - (index + 12))) % 256 =
+    value.toNat / 2 ^ (8 * (20 - 1 - index)) % 256
+  rw [toNat_ofH160]
+  have hindex : 8 * (32 - 1 - (index + 12)) = 8 * (20 - 1 - index) := by omega
+  rw [hindex]
+
+/-- The leading twelve bytes of a widened hash are zero. -/
+theorem getByte_ofH160_of_lt (value : H160) (index : ℕ) (h : index < 12) :
+    (ofH160 value).getByte index = 0 := by
+  rw [H256.getByte, FixedBytes.getByte_of_index_lt _ _ (by omega : index < 32)]
+  have hzero : (ofH160 value).toNat / 2 ^ (8 * (32 - 1 - index)) = 0 := by
+    apply Nat.div_eq_of_lt
+    refine lt_of_lt_of_le (toNat_ofH160 value ▸ value.toNat_lt) ?_
+    exact Nat.pow_le_pow_right (by decide) (by omega)
+  change UInt8.ofNat ((ofH160 value).toNat / 2 ^ (8 * (32 - 1 - index)) % 256) = 0
+  rw [hzero]
   rfl
 
 end H256

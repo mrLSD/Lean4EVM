@@ -41,9 +41,9 @@ section FixedWidthTests
 
 example : U64.ofNat? (2 ^ 64) = none := by decide
 example : U128.ofNat? (2 ^ 128 - 1) = some U128.max := by decide
-example : FixedUInt.overflowingAdd U64.max 1 = ((0 : U64), true) := by decide
-example : FixedUInt.checkedAdd U128.max 1 = none := by decide
-example : FixedUInt.saturatingSub (0 : U64) 1 = 0 := by decide
+example : U64.max.overflowingAdd 1 = ((0 : U64), true) := by decide
+example : U128.max.checkedAdd 1 = none := by decide
+example : (0 : U64).saturatingSub 1 = 0 := by decide
 example : U128.wideningMul U128.max U128.max =
     U256.ofNat ((2 ^ 128 - 1) * (2 ^ 128 - 1)) := by decide
 example : U256.fromU128s (U256.highU128 U256.max) (U256.lowU128 U256.max) = U256.max := by
@@ -59,14 +59,14 @@ section ArithmeticExamples
 example : U64.max + 1 = 0 := by decide
 
 /-- Checked arithmetic reports overflow instead of wrapping. -/
-example : FixedUInt.checkedMul U128.max 2 = none := by decide
+example : U128.max.checkedMul 2 = none := by decide
 
 /-- Saturating arithmetic clamps overflow to the maximum value. -/
-example : FixedUInt.saturatingAdd U64.max 1 = U64.max := by decide
+example : U64.max.saturatingAdd 1 = U64.max := by decide
 
 /-- Natural casts are explicit modulo conversions. -/
 example : (((U256.modulus + 7 : ℕ) : U256)).toNat = 7 := by
-  simp [U256.modulus, FixedUInt.modulus]
+  simp
 
 /-- Width conversions are explicit and checked when narrowing. -/
 example : (42 : U64).toU256.toU64? = some (42 : U64) := by decide
@@ -75,6 +75,78 @@ example : (42 : U64).toU256.toU64? = some (42 : U64) := by decide
 example : U256.shl U256.max 1 = 0 := by decide
 
 end ArithmeticExamples
+
+/-! ## U256 arithmetic and overflow policies
+
+Every operator on `U256` wraps at the word boundary, which is the EVM rule. The checked,
+overflowing and saturating variants are reached from the value itself, so a caller outside the EVM
+word, such as gas accounting, states its policy explicitly at the call site.
+-/
+
+section U256Arithmetic
+
+/-! ### The operators on results that fit in a word -/
+
+example : (7 : U256) + 3 = 10 := by decide
+example : (7 : U256) - 3 = 4 := by decide
+example : (7 : U256) * 3 = 21 := by decide
+example : (7 : U256) / 3 = 2 := by decide
+
+/-! ### Wrapping, the default policy: the exact result is taken modulo `2 ^ 256` -/
+
+example : U256.max + 1 = 0 := by decide
+example : (0 : U256) - 1 = U256.max := by decide
+example : U256.max * 2 = U256.max - 1 := by decide
+
+/-! ### Division never overflows; its only boundary is the EVM rule for a zero divisor -/
+
+example : (7 : U256) / 0 = 0 := by decide
+example : (7 : U256) % 0 = 0 := by decide
+
+/-! ### Checked: the exact result, or `none` when it does not fit
+
+The first case is written out step by step to show the shape of a call.
+-/
+
+example :
+    let x : U256 := 2
+    let y : U256 := U256.max
+    x.checkedAdd y = none := by decide
+
+example : (7 : U256).checkedAdd 3 = some 10 := by decide
+example : (7 : U256).checkedSub 3 = some 4 := by decide
+example : (7 : U256).checkedMul 3 = some 21 := by decide
+example : (7 : U256).checkedDiv 3 = some 2 := by decide
+
+example : U256.max.checkedAdd 1 = none := by decide
+example : (0 : U256).checkedSub 1 = none := by decide
+example : U256.max.checkedMul 2 = none := by decide
+example : (7 : U256).checkedDiv 0 = none := by decide
+
+/-! ### Overflowing: the wrapped result paired with the flag that reports the loss -/
+
+example : (7 : U256).overflowingAdd 3 = ((10 : U256), false) := by decide
+example : U256.max.overflowingAdd 1 = ((0 : U256), true) := by decide
+example : (7 : U256).overflowingSub 3 = ((4 : U256), false) := by decide
+example : (0 : U256).overflowingSub 1 = (U256.max, true) := by decide
+example : (7 : U256).overflowingMul 3 = ((21 : U256), false) := by decide
+example : U256.max.overflowingMul 2 = (U256.max - 1, true) := by decide
+
+/-! ### Saturating: clamped to the ends of the representable range -/
+
+example : (7 : U256).saturatingAdd 3 = 10 := by decide
+example : U256.max.saturatingAdd 1 = U256.max := by decide
+example : (7 : U256).saturatingSub 3 = 4 := by decide
+example : (0 : U256).saturatingSub 1 = 0 := by decide
+example : (7 : U256).saturatingMul 3 = 21 := by decide
+example : U256.max.saturatingMul 2 = U256.max := by decide
+
+/-! ### Quotient and remainder share one checked entry point -/
+
+example : (7 : U256).checkedDivMod 3 = some (2, 1) := by decide
+example : (7 : U256).checkedDivMod 0 = none := by decide
+
+end U256Arithmetic
 
 /-! ## Proof examples -/
 
