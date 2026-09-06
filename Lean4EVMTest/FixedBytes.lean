@@ -80,8 +80,9 @@ end FixedBytesTests
 
 /-! ## Deriving `H160` from `H256`
 
-Ethereum identifies an account by the last twenty bytes of a digest. `H256.toH160` is that rule and
-`H256.ofH160` is its zero-extending inverse.
+Ethereum identifies an account by the last twenty bytes of a digest. `H256.toH160` is that rule.
+`H256.ofH160` is the zero-extending embedding that `toH160` undoes; the opposite composition
+recovers a digest only when its leading twelve bytes are zero.
 -/
 
 section HashNarrowing

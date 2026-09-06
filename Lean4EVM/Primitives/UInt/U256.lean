@@ -406,7 +406,7 @@ theorem toU64?_toU256 (value : U64) : value.toU256.toU64? = some value := by
   simp only [toNat_lowU64, U64.toNat_toU256]
   exact Nat.mod_eq_of_lt (FixedUInt.toNat_lt_modulus value)
 
-/-- Widening and checked narrowing are mutually inverse. -/
+/-- Widening a `U128` to `U256` and narrowing it again is lossless. -/
 @[simp]
 theorem toU128?_toU256 (value : U128) : value.toU256.toU128? = some value := by
   have h : FixedUInt.toNat value.toU256 < U128.modulus := by
@@ -417,6 +417,26 @@ theorem toU128?_toU256 (value : U128) : value.toU256.toU128? = some value := by
   apply FixedUInt.toNat_injective
   simp only [U256.toNat_lowU128, U128.toNat_toU256]
   exact Nat.mod_eq_of_lt (FixedUInt.toNat_lt_modulus value)
+
+/-- A `U64` recovered by checked narrowing widens back to the word it came from. With
+`toU64?_toU256` this makes widening and checked narrowing mutually inverse. -/
+theorem toU256_toU64?_eq_some {value : U256} {narrowed : U64}
+    (h : value.toU64? = some narrowed) : narrowed.toU256 = value := by
+  rw [toU64?, U64.ofNat?] at h
+  rcases FixedUInt.ofNat?_eq_some_iff.mp h with ⟨hlt, hval⟩
+  apply FixedUInt.toNat_injective
+  simp only [U64.toNat_toU256, ← hval, FixedUInt.toNat_ofNat]
+  exact Nat.mod_eq_of_lt hlt
+
+/-- A `U128` recovered by checked narrowing widens back to the word it came from. With
+`toU128?_toU256` this makes widening and checked narrowing mutually inverse. -/
+theorem toU256_toU128?_eq_some {value : U256} {narrowed : U128}
+    (h : value.toU128? = some narrowed) : narrowed.toU256 = value := by
+  rw [toU128?, U128.ofNat?] at h
+  rcases FixedUInt.ofNat?_eq_some_iff.mp h with ⟨hlt, hval⟩
+  apply FixedUInt.toNat_injective
+  simp only [U128.toNat_toU256, ← hval, FixedUInt.toNat_ofNat]
+  exact Nat.mod_eq_of_lt hlt
 
 /-- `ISZERO` is true exactly for the zero word. -/
 @[simp]

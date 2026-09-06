@@ -160,6 +160,16 @@ theorem toU64?_toU128 (value : U64) : value.toU128.toU64? = some value := by
   simp only [toNat_lowU64, U64.toNat_toU128]
   exact Nat.mod_eq_of_lt (FixedUInt.toNat_lt_modulus value)
 
+/-- A `U64` recovered by checked narrowing widens back to the value it came from. With
+`toU64?_toU128` this makes widening and checked narrowing mutually inverse. -/
+theorem toU128_toU64?_eq_some {value : U128} {narrowed : U64}
+    (h : value.toU64? = some narrowed) : narrowed.toU128 = value := by
+  rw [toU64?, U64.ofNat?] at h
+  rcases FixedUInt.ofNat?_eq_some_iff.mp h with ⟨hlt, hval⟩
+  apply FixedUInt.toNat_injective
+  simp only [U64.toNat_toU128, ← hval, FixedUInt.toNat_ofNat]
+  exact Nat.mod_eq_of_lt hlt
+
 /-- Exact widening multiplication has the natural-number product as its value. -/
 @[simp]
 theorem toNat_wideningMul (a b : U128) :
