@@ -26,6 +26,66 @@ abbrev max : U64 := FixedUInt.max
 /-- Returns the modulus `2 ^ 64`. -/
 abbrev modulus : ℕ := FixedUInt.modulus 64
 
+/-! ### Overflow policies
+
+Ordinary `U64` arithmetic wraps. These re-exports give the checked, overflowing and saturating
+policies the same `value.operation` spelling, so a caller states its policy without reaching into
+the generic `FixedUInt` namespace.
+-/
+
+/-- Adds two values, or reports `none` when the exact sum does not fit in 64 bits. -/
+abbrev checkedAdd (a b : U64) : Option U64 := FixedUInt.checkedAdd a b
+/-- Subtracts two values, or reports `none` when the exact difference is negative. -/
+abbrev checkedSub (a b : U64) : Option U64 := FixedUInt.checkedSub a b
+/-- Multiplies two values, or reports `none` when the exact product does not fit in 64 bits. -/
+abbrev checkedMul (a b : U64) : Option U64 := FixedUInt.checkedMul a b
+/-- Divides two values, or reports `none` for a zero divisor. -/
+abbrev checkedDiv (a b : U64) : Option U64 := FixedUInt.checkedDiv a b
+/-- Computes a remainder, or reports `none` for a zero divisor. -/
+abbrev checkedMod (a b : U64) : Option U64 := FixedUInt.checkedMod a b
+/-- Returns quotient and remainder together, or `none` for a zero divisor. -/
+abbrev checkedDivMod (a b : U64) : Option (U64 × U64) := FixedUInt.checkedDivMod a b
+
+/-- Returns the wrapped sum together with the flag that reports the lost carry. -/
+abbrev overflowingAdd (a b : U64) : U64 × Bool := FixedUInt.overflowingAdd a b
+/-- Returns the wrapped difference together with the flag that reports the borrow. -/
+abbrev overflowingSub (a b : U64) : U64 × Bool := FixedUInt.overflowingSub a b
+/-- Returns the wrapped product together with the flag that reports the lost high bits. -/
+abbrev overflowingMul (a b : U64) : U64 × Bool := FixedUInt.overflowingMul a b
+
+/-- Adds two values, clamping an overflowing sum to the greatest U64. -/
+abbrev saturatingAdd (a b : U64) : U64 := FixedUInt.saturatingAdd a b
+/-- Subtracts two values, clamping an underflowing difference to zero. -/
+abbrev saturatingSub (a b : U64) : U64 := FixedUInt.saturatingSub a b
+/-- Multiplies two values, clamping an overflowing product to the greatest U64. -/
+abbrev saturatingMul (a b : U64) : U64 := FixedUInt.saturatingMul a b
+
+/-- Reports whether the exact sum leaves the 64-bit range. -/
+abbrev addOverflow (a b : U64) : Bool := FixedUInt.addOverflow a b
+/-- Reports whether the exact difference is negative. -/
+abbrev subOverflow (a b : U64) : Bool := FixedUInt.subOverflow a b
+/-- Reports whether the exact product leaves the 64-bit range. -/
+abbrev mulOverflow (a b : U64) : Bool := FixedUInt.mulOverflow a b
+
+/-! ### Bit inspection, rotation and rendering -/
+
+/-- Returns bit `index` counting from the least-significant bit; bits at 64 and above are false. -/
+abbrev testBit (value : U64) (index : ℕ) : Bool := FixedUInt.testBit value index
+/-- Counts the zero bits above the most-significant set bit. -/
+abbrev leadingZeros (value : U64) : ℕ := FixedUInt.leadingZeros value
+/-- Counts the zero bits below the least-significant set bit. -/
+abbrev trailingZeros (value : U64) : ℕ := FixedUInt.trailingZeros value
+/-- Counts the set bits. -/
+abbrev countOnes (value : U64) : ℕ := FixedUInt.countOnes value
+/-- Rotates the bit pattern left, carrying the bits that leave the top back into the bottom; the
+amount is taken modulo 64. -/
+abbrev rotateLeft (value : U64) (amount : ℕ) : U64 := FixedUInt.rotateLeft value amount
+/-- Rotates the bit pattern right, carrying the bits that leave the bottom back into the top; the
+amount is taken modulo 64. -/
+abbrev rotateRight (value : U64) (amount : ℕ) : U64 := FixedUInt.rotateRight value amount
+/-- Renders the value as `0x` followed by exactly 16 hexadecimal digits. -/
+abbrev toHex (value : U64) : String := FixedUInt.toHex value
+
 /-- The `U64` modulus has the canonical power-of-two form. -/
 @[simp]
 theorem modulus_eq : U64.modulus = 2 ^ 64 :=

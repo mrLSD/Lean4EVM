@@ -26,6 +26,66 @@ abbrev max : U128 := FixedUInt.max
 /-- Returns the modulus `2 ^ 128`. -/
 abbrev modulus : ℕ := FixedUInt.modulus 128
 
+/-! ### Overflow policies
+
+Ordinary `U128` arithmetic wraps. These re-exports give the checked, overflowing and saturating
+policies the same `value.operation` spelling, so a caller states its policy without reaching into
+the generic `FixedUInt` namespace.
+-/
+
+/-- Adds two values, or reports `none` when the exact sum does not fit in 128 bits. -/
+abbrev checkedAdd (a b : U128) : Option U128 := FixedUInt.checkedAdd a b
+/-- Subtracts two values, or reports `none` when the exact difference is negative. -/
+abbrev checkedSub (a b : U128) : Option U128 := FixedUInt.checkedSub a b
+/-- Multiplies two values, or reports `none` when the exact product does not fit in 128 bits. -/
+abbrev checkedMul (a b : U128) : Option U128 := FixedUInt.checkedMul a b
+/-- Divides two values, or reports `none` for a zero divisor. -/
+abbrev checkedDiv (a b : U128) : Option U128 := FixedUInt.checkedDiv a b
+/-- Computes a remainder, or reports `none` for a zero divisor. -/
+abbrev checkedMod (a b : U128) : Option U128 := FixedUInt.checkedMod a b
+/-- Returns quotient and remainder together, or `none` for a zero divisor. -/
+abbrev checkedDivMod (a b : U128) : Option (U128 × U128) := FixedUInt.checkedDivMod a b
+
+/-- Returns the wrapped sum together with the flag that reports the lost carry. -/
+abbrev overflowingAdd (a b : U128) : U128 × Bool := FixedUInt.overflowingAdd a b
+/-- Returns the wrapped difference together with the flag that reports the borrow. -/
+abbrev overflowingSub (a b : U128) : U128 × Bool := FixedUInt.overflowingSub a b
+/-- Returns the wrapped product together with the flag that reports the lost high bits. -/
+abbrev overflowingMul (a b : U128) : U128 × Bool := FixedUInt.overflowingMul a b
+
+/-- Adds two values, clamping an overflowing sum to the greatest U128. -/
+abbrev saturatingAdd (a b : U128) : U128 := FixedUInt.saturatingAdd a b
+/-- Subtracts two values, clamping an underflowing difference to zero. -/
+abbrev saturatingSub (a b : U128) : U128 := FixedUInt.saturatingSub a b
+/-- Multiplies two values, clamping an overflowing product to the greatest U128. -/
+abbrev saturatingMul (a b : U128) : U128 := FixedUInt.saturatingMul a b
+
+/-- Reports whether the exact sum leaves the 128-bit range. -/
+abbrev addOverflow (a b : U128) : Bool := FixedUInt.addOverflow a b
+/-- Reports whether the exact difference is negative. -/
+abbrev subOverflow (a b : U128) : Bool := FixedUInt.subOverflow a b
+/-- Reports whether the exact product leaves the 128-bit range. -/
+abbrev mulOverflow (a b : U128) : Bool := FixedUInt.mulOverflow a b
+
+/-! ### Bit inspection, rotation and rendering -/
+
+/-- Returns bit `index` counting from the least-significant bit; bits at 128 and above are false. -/
+abbrev testBit (value : U128) (index : ℕ) : Bool := FixedUInt.testBit value index
+/-- Counts the zero bits above the most-significant set bit. -/
+abbrev leadingZeros (value : U128) : ℕ := FixedUInt.leadingZeros value
+/-- Counts the zero bits below the least-significant set bit. -/
+abbrev trailingZeros (value : U128) : ℕ := FixedUInt.trailingZeros value
+/-- Counts the set bits. -/
+abbrev countOnes (value : U128) : ℕ := FixedUInt.countOnes value
+/-- Rotates the bit pattern left, carrying the bits that leave the top back into the bottom; the
+amount is taken modulo 128. -/
+abbrev rotateLeft (value : U128) (amount : ℕ) : U128 := FixedUInt.rotateLeft value amount
+/-- Rotates the bit pattern right, carrying the bits that leave the bottom back into the top; the
+amount is taken modulo 128. -/
+abbrev rotateRight (value : U128) (amount : ℕ) : U128 := FixedUInt.rotateRight value amount
+/-- Renders the value as `0x` followed by exactly 32 hexadecimal digits. -/
+abbrev toHex (value : U128) : String := FixedUInt.toHex value
+
 /-- The `U128` modulus has the canonical power-of-two form. -/
 @[simp]
 theorem modulus_eq : U128.modulus = 2 ^ 128 :=
