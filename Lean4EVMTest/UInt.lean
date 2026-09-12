@@ -180,4 +180,18 @@ example (shift value : U256) (h : 256 ≤ shift.toNat) : U256.shl shift value = 
 example (value : U64) : value.toU128.toU64? = some value :=
   U128.toU64?_toU128 value
 
+/-- The other direction: whatever checked narrowing accepts widens back to its source, which makes
+the pair mutually inverse. -/
+example {value : U128} {narrowed : U64} (h : value.toU64? = some narrowed) :
+    narrowed.toU128 = value :=
+  U128.toU128_toU64?_eq_some h
+
+example {value : U256} {narrowed : U64} (h : value.toU64? = some narrowed) :
+    narrowed.toU256 = value :=
+  U256.toU256_toU64?_eq_some h
+
+example {value : U256} {narrowed : U128} (h : value.toU128? = some narrowed) :
+    narrowed.toU256 = value :=
+  U256.toU256_toU128?_eq_some h
+
 end ProofExamples
