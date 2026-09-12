@@ -20,4 +20,9 @@ execution specification by a differential test on every commit. The result is me
 a reference implementation and the foundation for proving properties of transaction and block
 execution.
 
+The interpreter currently executes **STOP and ADD only**, with checked gas, a bounded operand stack,
+explicit fork availability and a proved terminating single-frame loop. Other available instructions
+return a distinct unsupported result; this is not yet a complete Ethereum executor.
+See [interpreter scope, proofs, SwiftEVM correspondence and real-oracle gates](docs/INTERPRETER.md).
+
 ## [MIT LICENSE](LICENSE)

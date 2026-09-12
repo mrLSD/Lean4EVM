@@ -1,4 +1,4 @@
-.PHONY: build test lint bypass drift diff check update
+.PHONY: build test lint bypass drift diff machine-diff prepare-oracles check update
 
 # Build the library.
 build:
@@ -24,8 +24,16 @@ drift:
 diff: build
 	@python3 scripts/eels_diff.py
 
+# Network/dependency preparation is explicit; the gate itself never skips missing oracles.
+prepare-oracles:
+	@python3 scripts/prepare_oracles.py
+
+# Real pinned EELS handlers/finalizer and unmodified SwiftEVM interpreter sources.
+machine-diff: build
+	@python3 scripts/machine_diff.py
+
 # Run all local checks.
-check: test lint bypass drift diff
+check: test lint bypass drift diff machine-diff
 
 # Refresh dependencies and the prebuilt Mathlib cache.
 update:

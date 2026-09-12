@@ -1,5 +1,6 @@
 import Lean4EVM.Primitives.UInt
 import Lean4EVM.Primitives.FixedBytes
+import Lean4EVM.Interpreter.Machine
 
 /-!
 # Lean4EVM
