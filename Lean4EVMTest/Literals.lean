@@ -268,17 +268,29 @@ example : h256"0x1234".getByte 0 = 0 := by decide
 #guard_msgs in
 #check 32#10
 
-/-- error: invalid numeral; expected decimal, hexadecimal (0x) or binary (0b) digits -/
+/--
+error: invalid numeral; expected decimal, hexadecimal (0x), binary (0b), or octal (0o) digits
+-/
 #guard_msgs in
 #check u64"0b102"
 
-/-- error: invalid numeral; expected decimal, hexadecimal (0x) or binary (0b) digits -/
+/--
+error: invalid numeral; expected decimal, hexadecimal (0x), binary (0b), or octal (0o) digits
+-/
 #guard_msgs in
 #check h160"0x"
 
-/-- error: invalid numeral; expected decimal, hexadecimal (0x) or binary (0b) digits -/
+/--
+error: invalid numeral; expected decimal, hexadecimal (0x), binary (0b), or octal (0o) digits
+-/
 #guard_msgs in
 #check h256"0xFF_"
+
+/--
+error: invalid numeral; expected decimal, hexadecimal (0x), binary (0b), or octal (0o) digits
+-/
+#guard_msgs in
+#check u64"0o18"
 
 /-- error: expected a quoted natural-number literal without whitespace -/
 #guard_msgs in

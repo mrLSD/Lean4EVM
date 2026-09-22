@@ -20,4 +20,4 @@ execution specification by a differential test on every commit. The result is me
 a reference implementation and the foundation for proving properties of transaction and block
 execution.
 
-## [MIT LICENSE](LICENSE)
+## LICENSE: [MIT](LICENSE)

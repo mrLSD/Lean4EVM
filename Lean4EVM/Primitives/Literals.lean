@@ -82,7 +82,7 @@ private def numeralValue (stx : Syntax) : TermElabM Nat := do
     throwErrorAt stx[1] "expected a quoted natural-number literal without whitespace"
   match Parser.runParserCategory (← getEnv) `primitiveNumeral text with
   | .error _ => throwErrorAt stx[1] "invalid numeral; \
-      expected decimal, hexadecimal (0x) or binary (0b) digits"
+      expected decimal, hexadecimal (0x), binary (0b), or octal (0o) digits"
   | .ok parsed => expandLiteral stx[0][0][0].getAtomVal (← numeralValue parsed[0])
 
 end Lean4EVM.Literals
