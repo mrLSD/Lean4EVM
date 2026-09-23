@@ -2,17 +2,20 @@ import Lean4EVM.Primitives.UInt.U256
 
 /-! # Operand stack
 
-The top is the final array element, as in SwiftEVM and EELS. The size bound is carried by the type.
+The top is the final array element. The type carries the EVM limit of stackLimit words.
 -/
 
 namespace Lean4EVM
 
-/-- EVM operand stack with at most 1024 words. -/
+/-- The maximum number of words that can be stored on the EVM operand stack. -/
+def stackLimit : ℕ := 1024
+
+/-- EVM operand stack with at most stackLimit words. -/
 structure Stack where
   /-- Words in bottom-to-top order. -/
   data : Array U256
   /-- The protocol stack limit. -/
-  bounded : data.size ≤ 1024
+  bounded : data.size ≤ stackLimit
   deriving DecidableEq
 
 namespace Stack
@@ -22,13 +25,17 @@ def empty : Stack := ⟨#[], by simp⟩
 
 /-- Checks a supplied bottom-to-top stack against the protocol limit. -/
 def ofArray? (data : Array U256) : Option Stack :=
-  if h : data.size ≤ 1024 then some ⟨data, h⟩ else none
+  if h : data.size ≤ stackLimit then
+    some ⟨data, h⟩
+  else
+    none
 
 /-- Pushes a word, failing exactly when the stack is full. -/
 def push (stack : Stack) (word : U256) : Option Stack :=
-  if h : stack.data.size < 1024 then
+  if h : stack.data.size < stackLimit then
     some ⟨stack.data.push word, by simp; omega⟩
-  else none
+  else
+    none
 
 /-- Removes the top word; an empty stack fails. -/
 def pop (stack : Stack) : Option (U256 × Stack) :=
@@ -39,7 +46,10 @@ def pop (stack : Stack) : Option (U256 × Stack) :=
 
 /-- Reads a word at a zero-based depth from the top without modifying the stack. -/
 def peek (stack : Stack) (depth : Nat) : Option U256 :=
-  if depth < stack.data.size then stack.data[stack.data.size - 1 - depth]? else none
+  if depth < stack.data.size then
+    stack.data[stack.data.size - 1 - depth]?
+  else
+    none
 
 /-- Underflow is determined before either operand is removed. -/
 def popTwo (stack : Stack) : Option (U256 × U256 × Stack) := do
@@ -48,19 +58,22 @@ def popTwo (stack : Stack) : Option (U256 × U256 × Stack) := do
   return (a, b, tail)
 
 /-- Checked stack construction rejects exactly oversized arrays. -/
-@[simp] theorem ofArray?_eq_none_iff (data : Array U256) :
-    ofArray? data = none ↔ 1024 < data.size := by
+@[simp]
+theorem ofArray?_eq_none_iff (data : Array U256) :
+    ofArray? data = none ↔ stackLimit < data.size := by
   simp [ofArray?]
 
 /-- A push fails exactly at the protocol limit. -/
-@[simp] theorem push_eq_none_iff (stack : Stack) (word : U256) :
-    stack.push word = none ↔ stack.data.size = 1024 := by
+@[simp]
+theorem push_eq_none_iff (stack : Stack) (word : U256) :
+    stack.push word = none ↔ stack.data.size = stackLimit := by
   have bounded := stack.bounded
   simp only [push]
   split <;> simp_all <;> omega
 
 /-- A pop fails exactly when there are no operands. -/
-@[simp] theorem pop_eq_none_iff (stack : Stack) :
+@[simp]
+theorem pop_eq_none_iff (stack : Stack) :
     stack.pop = none ↔ stack.data.size = 0 := by
   simp only [pop]
   cases h : stack.data.back? with
@@ -70,7 +83,8 @@ def popTwo (stack : Stack) : Option (U256 × U256 × Stack) := do
     simp [hx]
 
 /-- Successful pushes append precisely the supplied word. -/
-theorem push_spec {stack next : Stack} {word : U256} (h : stack.push word = some next) :
+theorem push_spec {stack next : Stack} {word : U256}
+    (h : stack.push word = some next) :
     next.data = stack.data.push word := by
   unfold push at h
   split at h
@@ -107,7 +121,8 @@ theorem popTwo_spec {stack tail : Stack} {a b : U256}
       rw [pop_spec hp, pop_spec hq]
 
 /-- Binary instructions underflow exactly when fewer than two operands are present. -/
-@[simp] theorem popTwo_eq_none_iff (stack : Stack) :
+@[simp]
+theorem popTwo_eq_none_iff (stack : Stack) :
     stack.popTwo = none ↔ stack.data.size < 2 := by
   cases hp : stack.pop with
   | none =>
@@ -126,7 +141,8 @@ theorem popTwo_spec {stack tail : Stack} {a b : U256}
       simp [popTwo, hp, hq, shape, restShape]
 
 /-- Popping a successfully pushed word restores the previous stack. -/
-theorem pop_push {stack next : Stack} {word : U256} (h : stack.push word = some next) :
+theorem pop_push {stack next : Stack} {word : U256}
+    (h : stack.push word = some next) :
     next.pop = some (word, stack) := by
   have shape := push_spec h
   cases stack
@@ -134,14 +150,16 @@ theorem pop_push {stack next : Stack} {word : U256} (h : stack.push word = some 
   simp_all [pop]
 
 /-- Reading beyond the available top-relative depth fails exactly at the stack size. -/
-@[simp] theorem peek_eq_none_iff (stack : Stack) (depth : Nat) :
+@[simp]
+theorem peek_eq_none_iff (stack : Stack) (depth : Nat) :
     stack.peek depth = none ↔ stack.data.size ≤ depth := by
   unfold peek
   split <;> simp_all
   omega
 
 /-- The most recently pushed word is at depth zero. -/
-theorem peek_push {stack next : Stack} {word : U256} (h : stack.push word = some next) :
+theorem peek_push {stack next : Stack} {word : U256}
+    (h : stack.push word = some next) :
     next.peek 0 = some word := by
   simp [peek, push_spec h]
 
