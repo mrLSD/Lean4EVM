@@ -380,7 +380,7 @@ theorem toU128?_eq_none_iff (value : U256) :
 theorem toU128?_eq_some_of_lt (value : U256) (h : value.toNat < U128.modulus) :
     value.toU128? = some value.lowU128 := by
   simp only [toU128?, lowU128, U128.ofNat?, FixedUInt.ofNat?]
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- Checked narrowing to `U64` fails exactly for out-of-range values. -/
 @[simp]
@@ -392,7 +392,7 @@ theorem toU64?_eq_none_iff (value : U256) :
 theorem toU64?_eq_some_of_lt (value : U256) (h : value.toNat < U64.modulus) :
     value.toU64? = some value.lowU64 := by
   simp only [toU64?, lowU64, U64.ofNat?, FixedUInt.ofNat?]
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- Widening a `U64` to `U256` and narrowing it again is lossless. -/
 @[simp]

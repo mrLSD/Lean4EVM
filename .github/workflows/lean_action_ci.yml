@@ -41,3 +41,45 @@ jobs:
 
       - name: Differential test against EELS
         run: python3 scripts/eels_diff.py
+
+  machine-oracles:
+    name: Real EELS and SwiftEVM comparison
+    # Keep the existing Linux checks; compile Swift on its upstream development platform.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Check out pinned EELS oracle
+        uses: actions/checkout@v7
+        with:
+          repository: ethereum/execution-specs
+          ref: abbe05777ab83fb94ce18c425daaa7ab79e779c1
+          path: .lake/upstream/eels
+
+      - name: Check out pinned SwiftEVM oracle
+        uses: actions/checkout@v7
+        with:
+          repository: mrLSD/evm-swift
+          ref: 6a37ced490ada61304393f04366a4a0efda44b86
+          path: .lake/upstream/swift
+
+      - name: Prepare isolated oracle dependencies
+        env:
+          EELS_SOURCE: ${{ github.workspace }}/.lake/upstream/eels
+          SWIFT_EVM_SOURCE: ${{ github.workspace }}/.lake/upstream/swift
+        run: |
+          python3 -m pip install uv==0.5.12
+          python3 scripts/prepare_oracles.py
+
+      - uses: leanprover/lean-action@v1
+        with:
+          test: false
+          lint: false
+          build-args: --wfail
+
+      - name: Real EELS and SwiftEVM machine differential
+        run: python3 scripts/machine_diff.py

@@ -5,7 +5,8 @@ import Lean4EVM.Primitives.UInt.U256
 /-!
 # `H256`
 
-Nominal 256-bit hash values and explicit, lossless reinterpretation of EVM words.
+Nominal 256-bit hash values, their lossless reinterpretation as EVM words, and the narrowing to
+`H160` that keeps the last twenty bytes of a digest and discards the rest.
 -/
 
 namespace Lean4EVM

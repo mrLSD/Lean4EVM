@@ -146,7 +146,7 @@ theorem toU64?_eq_none_iff (value : U128) :
 theorem toU64?_eq_some_of_lt (value : U128) (h : value.toNat < U64.modulus) :
     value.toU64? = some value.lowU64 := by
   simp only [toU64?, lowU64, U64.ofNat?, FixedUInt.ofNat?]
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- Widening a `U64` and narrowing it again is lossless. -/
 @[simp]

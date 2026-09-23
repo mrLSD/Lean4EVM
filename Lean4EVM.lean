@@ -1,5 +1,6 @@
 import Lean4EVM.Primitives.UInt
 import Lean4EVM.Primitives.FixedBytes
+import Lean4EVM.Interpreter.Machine
 import Lean4EVM.Primitives.Literals
 
 /-!
@@ -9,4 +10,5 @@ Lean definitions of Ethereum EVM and their verified executable operations.
 
 `Primitives.UInt` and `Primitives.FixedBytes` are family façades. Their `Core` modules own shared
 representations and proofs; modules named after public types own width- or meaning-specific APIs.
+`Interpreter.Machine` executes the implemented instruction subset over those primitives.
 -/
